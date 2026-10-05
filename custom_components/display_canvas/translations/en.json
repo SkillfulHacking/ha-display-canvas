@@ -4,9 +4,9 @@
     "step": {
       "user": {
         "title": "Set up Display Canvas",
-        "description": "Choose the Home Assistant media folder to publish as your first Display Canvas collection.",
+        "description": "Choose an initial Home Assistant media folder. You can create named libraries after setup.",
         "data": {
-          "media_source": "Media collection"
+          "media_source": "Initial media folder"
         },
         "data_description": {
           "media_source": "Choose a folder containing images."
@@ -21,16 +21,82 @@
     "step": {
       "init": {
         "title": "Configure Display Canvas",
-        "description": "Choose which Home Assistant media library each display feed publishes.",
+        "description": "Manage image libraries and display feeds.",
+        "menu_options": {
+          "libraries": "Libraries",
+          "overflight": "Projectivy / Overflight",
+          "aerial": "Aerial Views",
+          "advanced": "Advanced"
+        },
+        "menu_option_descriptions": {
+          "libraries": "Add, update, or remove named image libraries.",
+          "overflight": "Choose the library published to Projectivy / Overflight.",
+          "aerial": "Choose the library published to Aerial Views.",
+          "advanced": "Manage raw fallback media sources."
+        }
+      },
+      "libraries": {
+        "title": "Libraries",
+        "description": "Manage reusable named image libraries.",
+        "menu_options": {
+          "save_library": "Add or update library",
+          "remove_library": "Remove library"
+        },
+        "menu_option_descriptions": {
+          "save_library": "Create a library or update an existing library's media folder.",
+          "remove_library": "Remove a library that is not currently assigned to a feed."
+        }
+      },
+      "save_library": {
+        "title": "Add or update library",
+        "description": "Give the library a friendly name and choose its Home Assistant media folder.",
         "data": {
-          "overflight_media_source": "Projectivy / Overflight library",
-          "aerial_media_source": "Aerial Views library"
+          "library": "Library name",
+          "media_source": "Media folder"
         },
         "data_description": {
-          "overflight_media_source": "Images published to the Projectivy / Overflight feed.",
-          "aerial_media_source": "Images published to the Aerial Views feed."
+          "library": "Entering an existing name updates that library.",
+          "media_source": "Browse the contents and select the folder to publish."
+        }
+      },
+      "remove_library": {
+        "title": "Remove library",
+        "description": "Only libraries that are not currently assigned to a feed can be removed.",
+        "data": {
+          "library": "Library"
+        }
+      },
+      "overflight": {
+        "title": "Projectivy / Overflight",
+        "description": "Choose the named library published by the Overflight JSON feed.",
+        "data": {
+          "overflight_library": "Library"
+        }
+      },
+      "aerial": {
+        "title": "Aerial Views",
+        "description": "Choose the named library published by the Aerial Views CSV feed.",
+        "data": {
+          "aerial_library": "Library"
+        }
+      },
+      "advanced": {
+        "title": "Advanced",
+        "description": "Configure fallback raw media sources. Named library assignments take precedence.",
+        "data": {
+          "overflight_media_source": "Overflight fallback source",
+          "aerial_media_source": "Aerial Views fallback source"
+        },
+        "data_description": {
+          "overflight_media_source": "Used when Overflight does not have a valid named library assigned.",
+          "aerial_media_source": "Used when Aerial Views does not have a valid named library assigned."
         }
       }
+    },
+    "error": {
+      "library_in_use": "This library is currently assigned to a display feed. Assign another library first.",
+      "invalid_library_name": "Library name must be between 1 and 64 characters.",
+      "source_not_browsable": "This source is not a supported image collection. Choose a browsable media folder or a camera image source."
     }
   }
 }

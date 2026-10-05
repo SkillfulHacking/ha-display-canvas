@@ -29,7 +29,11 @@ from .const import (
     TARGET_ALL,
     TARGET_OVERFLIGHT,
 )
-from .library import find_library_name, libraries
+from .library import (
+    find_library_name,
+    libraries,
+    normalize_media_source,
+)
 
 
 TARGET_SCHEMA = vol.In(
@@ -53,7 +57,7 @@ def _validate_media_source(value: Any) -> dict[str, Any]:
             "Media source must contain media_content_id"
         )
 
-    return value
+    return normalize_media_source(value)
 
 
 def _validate_library_name(value: Any) -> str:
