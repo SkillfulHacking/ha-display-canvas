@@ -17,9 +17,13 @@ from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_ACCESS_TOKEN,
+    CONF_AERIAL_SOURCE,
     CONF_MEDIA_SOURCE,
+    CONF_OVERFLIGHT_SOURCE,
     DATA_ENTRIES,
     DOMAIN,
+    TARGET_AERIAL,
+    TARGET_OVERFLIGHT,
 )
 
 MAX_IMAGES = 500
@@ -40,12 +44,42 @@ def _entry_for_token(
     return None
 
 
-def _media_source_id(entry: ConfigEntry) -> str:
-    """Return the configured HA media source ID."""
-    selected = entry.options.get(
+def _default_media_source(entry: ConfigEntry):
+    """Return the original/default configured media source."""
+    return entry.options.get(
         CONF_MEDIA_SOURCE,
         entry.data[CONF_MEDIA_SOURCE],
     )
+
+
+def _selected_media_source(
+    entry: ConfigEntry,
+    target: str,
+):
+    """Return the configured media source for a target."""
+    default_source = _default_media_source(entry)
+
+    if target == TARGET_OVERFLIGHT:
+        return entry.options.get(
+            CONF_OVERFLIGHT_SOURCE,
+            default_source,
+        )
+
+    if target == TARGET_AERIAL:
+        return entry.options.get(
+            CONF_AERIAL_SOURCE,
+            default_source,
+        )
+
+    raise ValueError(f"Unsupported Display Canvas target: {target}")
+
+
+def _media_source_id(
+    entry: ConfigEntry,
+    target: str,
+) -> str:
+    """Return the HA media source ID for a target."""
+    selected = _selected_media_source(entry, target)
 
     if isinstance(selected, dict):
         return selected["media_content_id"]
@@ -78,12 +112,12 @@ def _base_url(request: web.Request) -> str:
     return f"{request.scheme}://{request.host}"
 
 
-async def _async_images(
+async def _async_images_from_source(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    source_id: str,
 ) -> list:
-    """Recursively collect images from the configured media source."""
-    pending = [_media_source_id(entry)]
+    """Recursively collect images from a media source."""
+    pending = [source_id]
     visited: set[str] = set()
     images = []
 
@@ -95,7 +129,10 @@ async def _async_images(
 
         visited.add(current)
 
-        browsed = await media_source.async_browse_media(hass, current)
+        browsed = await media_source.async_browse_media(
+            hass,
+            current,
+        )
 
         for child in browsed.children or []:
             if child.can_expand:
@@ -114,7 +151,22 @@ async def _async_images(
                 if len(images) >= MAX_IMAGES:
                     break
 
-    return sorted(images, key=lambda item: item.title.casefold())
+    return sorted(
+        images,
+        key=lambda item: item.title.casefold(),
+    )
+
+
+async def _async_images(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    target: str,
+) -> list:
+    """Return published images for a target."""
+    return await _async_images_from_source(
+        hass,
+        _media_source_id(entry, target),
+    )
 
 
 async def _async_find_image(
@@ -122,12 +174,31 @@ async def _async_find_image(
     entry: ConfigEntry,
     image_id: str,
 ):
-    """Find a published image by its stable ID."""
+    """Find an image published by either target."""
     image_id = image_id.split(".", 1)[0]
 
-    for image in await _async_images(hass, entry):
-        if hmac.compare_digest(_image_id(image.media_content_id), image_id):
-            return image
+    checked_sources: set[str] = set()
+
+    for target in (
+        TARGET_OVERFLIGHT,
+        TARGET_AERIAL,
+    ):
+        source_id = _media_source_id(entry, target)
+
+        if source_id in checked_sources:
+            continue
+
+        checked_sources.add(source_id)
+
+        for image in await _async_images_from_source(
+            hass,
+            source_id,
+        ):
+            if hmac.compare_digest(
+                _image_id(image.media_content_id),
+                image_id,
+            ):
+                return image
 
     return None
 
@@ -150,7 +221,11 @@ class DisplayCanvasOverflightView(HomeAssistantView):
         if (entry := _entry_for_token(hass, token)) is None:
             raise web.HTTPNotFound
 
-        images = await _async_images(hass, entry)
+        images = await _async_images(
+            hass,
+            entry,
+            TARGET_OVERFLIGHT,
+        )
         base = _base_url(request)
 
         result = [
@@ -167,7 +242,14 @@ class DisplayCanvasOverflightView(HomeAssistantView):
             for image in images
         ]
 
-        return self.json(result)
+        return self.json(
+            result,
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
 
 
 class DisplayCanvasAerialView(HomeAssistantView):
@@ -188,7 +270,11 @@ class DisplayCanvasAerialView(HomeAssistantView):
         if (entry := _entry_for_token(hass, token)) is None:
             raise web.HTTPNotFound
 
-        images = await _async_images(hass, entry)
+        images = await _async_images(
+            hass,
+            entry,
+            TARGET_AERIAL,
+        )
         base = _base_url(request)
 
         output = StringIO()
@@ -202,7 +288,7 @@ class DisplayCanvasAerialView(HomeAssistantView):
                     (
                         f"{base}/api/display_canvas/{token}/media/"
                         f"{_image_id(image.media_content_id)}"
-                    f"{_image_suffix(image)}"
+                        f"{_image_suffix(image)}"
                     ),
                     image.title,
                 ]
@@ -211,6 +297,11 @@ class DisplayCanvasAerialView(HomeAssistantView):
         return web.Response(
             text=output.getvalue(),
             content_type="text/csv",
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
         )
 
 
@@ -227,7 +318,7 @@ class DisplayCanvasMediaView(HomeAssistantView):
         token: str,
         image_id: str,
     ) -> web.StreamResponse:
-        """Return an image from the configured collection."""
+        """Return an image from a published source."""
         hass: HomeAssistant = request.app[KEY_HASS]
 
         if (entry := _entry_for_token(hass, token)) is None:
@@ -250,7 +341,10 @@ class DisplayCanvasMediaView(HomeAssistantView):
 
         if resolved.path is None:
             raise web.HTTPNotFound(
-                reason="This media source cannot yet be proxied by Display Canvas"
+                reason=(
+                    "This media source cannot yet be proxied "
+                    "by Display Canvas"
+                )
             )
 
         return web.FileResponse(resolved.path)

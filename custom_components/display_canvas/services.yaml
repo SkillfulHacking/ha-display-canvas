@@ -1,0 +1,26 @@
+set_source:
+  name: Set feed source
+  description: Change the Home Assistant media library published by a Display Canvas feed.
+  fields:
+    target:
+      name: Feed
+      description: Choose which feed should use the selected media library.
+      required: true
+      selector:
+        select:
+          options:
+            - label: Projectivy / Overflight
+              value: overflight
+            - label: Aerial Views
+              value: aerial
+            - label: Both feeds
+              value: all
+
+    media_source:
+      name: Media library
+      description: Choose the Home Assistant media folder to publish.
+      required: true
+      selector:
+        media:
+          accept:
+            - directory

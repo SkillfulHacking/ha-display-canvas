@@ -14,22 +14,20 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_ACCESS_TOKEN,
+    CONF_AERIAL_SOURCE,
     CONF_MEDIA_SOURCE,
+    CONF_OVERFLIGHT_SOURCE,
     DOMAIN,
     NAME,
 )
 
 
-def _media_schema() -> vol.Schema:
-    """Return the media source selection schema."""
-    return vol.Schema(
-        {
-            vol.Required(CONF_MEDIA_SOURCE): selector.MediaSelector(
-                selector.MediaSelectorConfig(
-                    accept=["directory"],
-                )
-            ),
-        }
+def _media_selector() -> selector.MediaSelector:
+    """Return a directory-only media selector."""
+    return selector.MediaSelector(
+        selector.MediaSelectorConfig(
+            accept=["directory"],
+        )
     )
 
 
@@ -58,7 +56,11 @@ class DisplayCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=_media_schema(),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_MEDIA_SOURCE): _media_selector(),
+                }
+            ),
         )
 
     @staticmethod
@@ -83,21 +85,44 @@ class DisplayCanvasOptionsFlow(OptionsFlowWithReload):
             return self.async_create_entry(
                 title="",
                 data={
-                    CONF_MEDIA_SOURCE: user_input[CONF_MEDIA_SOURCE],
+                    CONF_OVERFLIGHT_SOURCE: user_input[
+                        CONF_OVERFLIGHT_SOURCE
+                    ],
+                    CONF_AERIAL_SOURCE: user_input[
+                        CONF_AERIAL_SOURCE
+                    ],
                 },
             )
 
-        current_source = self.config_entry.options.get(
+        default_source = self.config_entry.options.get(
             CONF_MEDIA_SOURCE,
             self.config_entry.data.get(CONF_MEDIA_SOURCE),
+        )
+
+        overflight_source = self.config_entry.options.get(
+            CONF_OVERFLIGHT_SOURCE,
+            default_source,
+        )
+
+        aerial_source = self.config_entry.options.get(
+            CONF_AERIAL_SOURCE,
+            default_source,
+        )
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_OVERFLIGHT_SOURCE): _media_selector(),
+                vol.Required(CONF_AERIAL_SOURCE): _media_selector(),
+            }
         )
 
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(
-                _media_schema(),
+                schema,
                 {
-                    CONF_MEDIA_SOURCE: current_source,
+                    CONF_OVERFLIGHT_SOURCE: overflight_source,
+                    CONF_AERIAL_SOURCE: aerial_source,
                 },
             ),
         )

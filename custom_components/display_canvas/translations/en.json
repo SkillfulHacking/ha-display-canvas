@@ -21,14 +21,14 @@
     "step": {
       "init": {
         "title": "Configure Display Canvas",
-        "description": "Overflight feed:\n`{overflight_url}`\n\nAerial Views feed:\n`{aerial_url}`\n\nChanging these settings does not change your feed URLs or access token.",
+        "description": "Choose which Home Assistant media library each display feed publishes.",
         "data": {
-          "media_source": "Media collection",
-          "min_resolution": "Minimum image resolution"
+          "overflight_media_source": "Projectivy / Overflight library",
+          "aerial_media_source": "Aerial Views library"
         },
         "data_description": {
-          "media_source": "Home Assistant media folder to publish.",
-          "min_resolution": "Images below this resolution are excluded from display feeds."
+          "overflight_media_source": "Images published to the Projectivy / Overflight feed.",
+          "aerial_media_source": "Images published to the Aerial Views feed."
         }
       }
     }
