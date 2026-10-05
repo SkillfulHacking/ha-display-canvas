@@ -14,8 +14,10 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_ACCESS_TOKEN,
+    CONF_AERIAL_LIBRARY,
     CONF_AERIAL_SOURCE,
     CONF_MEDIA_SOURCE,
+    CONF_OVERFLIGHT_LIBRARY,
     CONF_OVERFLIGHT_SOURCE,
     DOMAIN,
     NAME,
@@ -82,16 +84,23 @@ class DisplayCanvasOptionsFlow(OptionsFlowWithReload):
         """Manage Display Canvas options."""
 
         if user_input is not None:
+            options = dict(self.config_entry.options)
+
+            options[CONF_OVERFLIGHT_SOURCE] = user_input[
+                CONF_OVERFLIGHT_SOURCE
+            ]
+            options[CONF_AERIAL_SOURCE] = user_input[
+                CONF_AERIAL_SOURCE
+            ]
+
+            # Choosing a raw source here intentionally switches these
+            # feeds away from any named library.
+            options.pop(CONF_OVERFLIGHT_LIBRARY, None)
+            options.pop(CONF_AERIAL_LIBRARY, None)
+
             return self.async_create_entry(
                 title="",
-                data={
-                    CONF_OVERFLIGHT_SOURCE: user_input[
-                        CONF_OVERFLIGHT_SOURCE
-                    ],
-                    CONF_AERIAL_SOURCE: user_input[
-                        CONF_AERIAL_SOURCE
-                    ],
-                },
+                data=options,
             )
 
         default_source = self.config_entry.options.get(

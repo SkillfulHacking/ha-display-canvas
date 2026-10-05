@@ -17,14 +17,12 @@ from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_ACCESS_TOKEN,
-    CONF_AERIAL_SOURCE,
-    CONF_MEDIA_SOURCE,
-    CONF_OVERFLIGHT_SOURCE,
     DATA_ENTRIES,
     DOMAIN,
     TARGET_AERIAL,
     TARGET_OVERFLIGHT,
 )
+from .library import media_source_id
 
 MAX_IMAGES = 500
 
@@ -42,49 +40,6 @@ def _entry_for_token(
             return entry
 
     return None
-
-
-def _default_media_source(entry: ConfigEntry):
-    """Return the original/default configured media source."""
-    return entry.options.get(
-        CONF_MEDIA_SOURCE,
-        entry.data[CONF_MEDIA_SOURCE],
-    )
-
-
-def _selected_media_source(
-    entry: ConfigEntry,
-    target: str,
-):
-    """Return the configured media source for a target."""
-    default_source = _default_media_source(entry)
-
-    if target == TARGET_OVERFLIGHT:
-        return entry.options.get(
-            CONF_OVERFLIGHT_SOURCE,
-            default_source,
-        )
-
-    if target == TARGET_AERIAL:
-        return entry.options.get(
-            CONF_AERIAL_SOURCE,
-            default_source,
-        )
-
-    raise ValueError(f"Unsupported Display Canvas target: {target}")
-
-
-def _media_source_id(
-    entry: ConfigEntry,
-    target: str,
-) -> str:
-    """Return the HA media source ID for a target."""
-    selected = _selected_media_source(entry, target)
-
-    if isinstance(selected, dict):
-        return selected["media_content_id"]
-
-    return selected
 
 
 def _image_id(media_content_id: str) -> str:
@@ -165,7 +120,7 @@ async def _async_images(
     """Return published images for a target."""
     return await _async_images_from_source(
         hass,
-        _media_source_id(entry, target),
+        media_source_id(entry, target),
     )
 
 
@@ -183,7 +138,7 @@ async def _async_find_image(
         TARGET_OVERFLIGHT,
         TARGET_AERIAL,
     ):
-        source_id = _media_source_id(entry, target)
+        source_id = media_source_id(entry, target)
 
         if source_id in checked_sources:
             continue
