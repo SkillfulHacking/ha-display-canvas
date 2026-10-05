@@ -16,5 +16,19 @@
     "abort": {
       "already_configured": "Display Canvas is already configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure Display Canvas",
+        "description": "Choose the Home Assistant media folder to publish.",
+        "data": {
+          "media_source": "Media collection"
+        },
+        "data_description": {
+          "media_source": "Changing this does not change your Display Canvas feed URLs."
+        }
+      }
+    }
   }
 }

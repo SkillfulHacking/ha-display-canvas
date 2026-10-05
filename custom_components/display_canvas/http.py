@@ -41,7 +41,10 @@ def _entry_for_token(
 
 def _media_source_id(entry: ConfigEntry) -> str:
     """Return the configured HA media source ID."""
-    selected = entry.data[CONF_MEDIA_SOURCE]
+    selected = entry.options.get(
+        CONF_MEDIA_SOURCE,
+        entry.data[CONF_MEDIA_SOURCE],
+    )
 
     if isinstance(selected, dict):
         return selected["media_content_id"]
