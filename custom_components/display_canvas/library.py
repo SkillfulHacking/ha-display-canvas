@@ -18,6 +18,34 @@ from .const import (
 )
 
 
+def normalize_media_source(
+    value: dict[str, Any],
+) -> dict[str, str]:
+    """Store only the stable parts of a media selector value."""
+    return {
+        "media_content_id": value["media_content_id"],
+        "media_content_type": value.get("media_content_type", "") or "",
+    }
+
+
+CAMERA_MEDIA_PREFIX = "media-source://camera/"
+
+
+def camera_entity_id(source_id: str) -> str | None:
+    """Return the camera entity ID for a camera media source."""
+    if not source_id.startswith(CAMERA_MEDIA_PREFIX):
+        return None
+
+    entity_id = source_id.removeprefix(
+        CAMERA_MEDIA_PREFIX
+    ).rstrip("/")
+
+    if not entity_id.startswith("camera."):
+        return None
+
+    return entity_id
+
+
 def libraries(entry: ConfigEntry) -> dict[str, Any]:
     """Return configured named libraries."""
     return dict(entry.options.get(CONF_LIBRARIES, {}))

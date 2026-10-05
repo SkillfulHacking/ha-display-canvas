@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+from dataclasses import dataclass
 from hashlib import sha256
 import hmac
 from io import StringIO
@@ -10,10 +11,12 @@ from pathlib import Path
 
 from aiohttp import web
 
-from homeassistant.components import media_source
+from homeassistant.components import camera, media_source
 from homeassistant.components.http import KEY_HASS, HomeAssistantView
+from homeassistant.components.media_player.errors import BrowseError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from .const import (
     CONF_ACCESS_TOKEN,
@@ -22,9 +25,18 @@ from .const import (
     TARGET_AERIAL,
     TARGET_OVERFLIGHT,
 )
-from .library import media_source_id
+from .library import camera_entity_id, media_source_id
 
 MAX_IMAGES = 500
+
+
+@dataclass(frozen=True, slots=True)
+class DisplayCanvasImage:
+    """Represent an image published by Display Canvas."""
+
+    title: str
+    media_content_id: str
+    media_content_type: str
 
 
 def _entry_for_token(
@@ -72,6 +84,25 @@ async def _async_images_from_source(
     source_id: str,
 ) -> list:
     """Recursively collect images from a media source."""
+    if (entity_id := camera_entity_id(source_id)) is not None:
+        state = hass.states.get(entity_id)
+
+        if state is None:
+            return []
+
+        title = state.attributes.get(
+            "friendly_name",
+            entity_id,
+        )
+
+        return [
+            DisplayCanvasImage(
+                title=f"{title}.jpg",
+                media_content_id=source_id,
+                media_content_type="image/jpeg",
+            )
+        ]
+
     pending = [source_id]
     visited: set[str] = set()
     images = []
@@ -84,10 +115,13 @@ async def _async_images_from_source(
 
         visited.add(current)
 
-        browsed = await media_source.async_browse_media(
-            hass,
-            current,
-        )
+        try:
+            browsed = await media_source.async_browse_media(
+                hass,
+                current,
+            )
+        except BrowseError:
+            continue
 
         for child in browsed.children or []:
             if child.can_expand:
@@ -287,6 +321,33 @@ class DisplayCanvasMediaView(HomeAssistantView):
 
         if image is None:
             raise web.HTTPNotFound
+
+        camera_id = camera_entity_id(
+            image.media_content_id
+        )
+
+        if camera_id is not None:
+            try:
+                snapshot = await camera.async_get_image(
+                    hass,
+                    camera_id,
+                )
+            except HomeAssistantError as err:
+                raise web.HTTPServiceUnavailable(
+                    reason="Unable to get camera image"
+                ) from err
+
+            return web.Response(
+                body=snapshot.content,
+                content_type=snapshot.content_type,
+                headers={
+                    "Cache-Control": (
+                        "no-store, no-cache, must-revalidate"
+                    ),
+                    "Pragma": "no-cache",
+                    "Expires": "0",
+                },
+            )
 
         resolved = await media_source.async_resolve_media(
             hass,

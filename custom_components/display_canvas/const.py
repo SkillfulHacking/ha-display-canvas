@@ -3,7 +3,7 @@
 DOMAIN = "display_canvas"
 
 NAME = "Display Canvas"
-VERSION = "0.8.2"
+VERSION = "0.9.0"
 
 CONF_MEDIA_SOURCE = "media_source"
 CONF_OVERFLIGHT_SOURCE = "overflight_media_source"
