@@ -4,7 +4,13 @@
     "step": {
       "user": {
         "title": "Set up Display Canvas",
-        "description": "Manage and publish visual media to displays throughout your Home Assistant environment."
+        "description": "Choose the Home Assistant media folder to publish as your first Display Canvas collection.",
+        "data": {
+          "media_source": "Media collection"
+        },
+        "data_description": {
+          "media_source": "Choose a folder containing images."
+        }
       }
     },
     "abort": {
