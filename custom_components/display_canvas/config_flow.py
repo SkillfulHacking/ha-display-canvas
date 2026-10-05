@@ -28,7 +28,10 @@ def _media_selector() -> selector.MediaSelector:
     """Return a directory-only media selector."""
     return selector.MediaSelector(
         selector.MediaSelectorConfig(
-            accept=["directory"],
+            accept=[
+                "directory",
+                "image/*",
+            ],
         )
     )
 

@@ -22,6 +22,7 @@ set_source:
         media:
           accept:
             - directory
+            - image/*
 
 save_library:
   name: Save library
@@ -40,6 +41,7 @@ save_library:
         media:
           accept:
             - directory
+            - image/*
 
 remove_library:
   name: Remove library

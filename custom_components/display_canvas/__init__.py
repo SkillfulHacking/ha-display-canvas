@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DATA_ENTRIES, DOMAIN
 from .http import async_register_http_views
 from .services import async_setup_services
+
+PLATFORMS = [
+    Platform.SELECT,
+]
 
 
 async def async_setup(
@@ -34,6 +39,11 @@ async def async_setup_entry(
         async_register_http_views(hass)
         domain_data["http_registered"] = True
 
+    await hass.config_entries.async_forward_entry_setups(
+        entry,
+        PLATFORMS,
+    )
+
     return True
 
 
@@ -42,14 +52,20 @@ async def async_unload_entry(
     entry: ConfigEntry,
 ) -> bool:
     """Unload a Display Canvas config entry."""
-    entries = hass.data.get(
-        DOMAIN,
-        {},
-    ).get(
-        DATA_ENTRIES,
-        {},
+    unload_ok = await hass.config_entries.async_unload_platforms(
+        entry,
+        PLATFORMS,
     )
 
-    entries.pop(entry.entry_id, None)
+    if unload_ok:
+        entries = hass.data.get(
+            DOMAIN,
+            {},
+        ).get(
+            DATA_ENTRIES,
+            {},
+        )
 
-    return True
+        entries.pop(entry.entry_id, None)
+
+    return unload_ok

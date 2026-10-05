@@ -115,6 +115,21 @@ def _entry(hass: HomeAssistant) -> ConfigEntry:
     return next(iter(entries.values()))
 
 
+
+async def _async_update_options(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    options: dict,
+) -> None:
+    """Store options and reload Display Canvas."""
+    hass.config_entries.async_update_entry(
+        entry,
+        options=options,
+    )
+
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register Display Canvas actions."""
 
@@ -135,9 +150,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             options[CONF_AERIAL_SOURCE] = media_source
             options.pop(CONF_AERIAL_LIBRARY, None)
 
-        hass.config_entries.async_update_entry(
+        await _async_update_options(
+            hass,
             entry,
-            options=options,
+            options,
         )
 
     async def async_save_library(call: ServiceCall) -> None:
@@ -161,9 +177,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         options = dict(entry.options)
         options[CONF_LIBRARIES] = configured
 
-        hass.config_entries.async_update_entry(
+        await _async_update_options(
+            hass,
             entry,
-            options=options,
+            options,
         )
 
     async def async_remove_library(call: ServiceCall) -> None:
@@ -198,9 +215,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         options = dict(entry.options)
         options[CONF_LIBRARIES] = configured
 
-        hass.config_entries.async_update_entry(
+        await _async_update_options(
+            hass,
             entry,
-            options=options,
+            options,
         )
 
     async def async_set_library(call: ServiceCall) -> None:
@@ -228,9 +246,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if target in (TARGET_AERIAL, TARGET_ALL):
             options[CONF_AERIAL_LIBRARY] = name
 
-        hass.config_entries.async_update_entry(
+        await _async_update_options(
+            hass,
             entry,
-            options=options,
+            options,
         )
 
     hass.services.async_register(
