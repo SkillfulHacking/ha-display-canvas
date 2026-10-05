@@ -1,0 +1,14 @@
+{
+  "title": "Display Canvas",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Display Canvas",
+        "description": "Manage and publish visual media to displays throughout your Home Assistant environment."
+      }
+    },
+    "abort": {
+      "already_configured": "Display Canvas is already configured."
+    }
+  }
+}
