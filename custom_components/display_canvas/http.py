@@ -6,6 +6,7 @@ import csv
 from hashlib import sha256
 import hmac
 from io import StringIO
+from pathlib import Path
 
 from aiohttp import web
 
@@ -55,6 +56,21 @@ def _media_source_id(entry: ConfigEntry) -> str:
 def _image_id(media_content_id: str) -> str:
     """Generate a stable public ID for a media item."""
     return sha256(media_content_id.encode()).hexdigest()[:24]
+
+
+def _image_suffix(image) -> str:
+    """Return a useful file extension for a media item."""
+    suffix = Path(image.title).suffix.lower()
+
+    if suffix in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+        return suffix
+
+    return {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+    }.get(image.media_content_type, ".jpg")
 
 
 def _base_url(request: web.Request) -> str:
@@ -107,6 +123,8 @@ async def _async_find_image(
     image_id: str,
 ):
     """Find a published image by its stable ID."""
+    image_id = image_id.split(".", 1)[0]
+
     for image in await _async_images(hass, entry):
         if hmac.compare_digest(_image_id(image.media_content_id), image_id):
             return image
@@ -143,6 +161,7 @@ class DisplayCanvasOverflightView(HomeAssistantView):
                 "url_img": (
                     f"{base}/api/display_canvas/{token}/media/"
                     f"{_image_id(image.media_content_id)}"
+                    f"{_image_suffix(image)}"
                 ),
             }
             for image in images
@@ -183,6 +202,7 @@ class DisplayCanvasAerialView(HomeAssistantView):
                     (
                         f"{base}/api/display_canvas/{token}/media/"
                         f"{_image_id(image.media_content_id)}"
+                    f"{_image_suffix(image)}"
                     ),
                     image.title,
                 ]

@@ -21,12 +21,14 @@
     "step": {
       "init": {
         "title": "Configure Display Canvas",
-        "description": "Choose the Home Assistant media folder to publish.",
+        "description": "Overflight feed:\n`{overflight_url}`\n\nAerial Views feed:\n`{aerial_url}`\n\nChanging these settings does not change your feed URLs or access token.",
         "data": {
-          "media_source": "Media collection"
+          "media_source": "Media collection",
+          "min_resolution": "Minimum image resolution"
         },
         "data_description": {
-          "media_source": "Changing this does not change your Display Canvas feed URLs."
+          "media_source": "Home Assistant media folder to publish.",
+          "min_resolution": "Images below this resolution are excluded from display feeds."
         }
       }
     }
