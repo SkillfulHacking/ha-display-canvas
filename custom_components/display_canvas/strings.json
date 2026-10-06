@@ -26,13 +26,17 @@
           "libraries": "Libraries",
           "overflight": "Projectivy / Overflight",
           "aerial": "Aerial Views",
-          "advanced": "Advanced"
+          "advanced": "Advanced",
+          "general": "General",
+          "feed_urls": "Feed URLs"
         },
         "menu_option_descriptions": {
           "libraries": "Add, update, or remove named image libraries.",
           "overflight": "Choose the library published to Projectivy / Overflight.",
           "aerial": "Choose the library published to Aerial Views.",
-          "advanced": "Manage raw fallback media sources."
+          "advanced": "Manage raw fallback media sources.",
+          "general": "Configure the URL used by Display Canvas feeds.",
+          "feed_urls": "View the published feed addresses."
         }
       },
       "libraries": {
@@ -68,16 +72,28 @@
       },
       "overflight": {
         "title": "Projectivy / Overflight",
-        "description": "Choose the named library published by the Overflight JSON feed.",
+        "description": "Choose the library and image filters published by the Overflight JSON feed.\n\n**Published images: {published_count} of {total_count}**",
         "data": {
-          "overflight_library": "Library"
+          "overflight_library": "Library",
+          "overflight_orientation": "Orientation",
+          "overflight_min_resolution": "Minimum resolution"
+        },
+        "data_description": {
+          "overflight_orientation": "Only publish images matching this orientation.",
+          "overflight_min_resolution": "Exclude images smaller than this resolution."
         }
       },
       "aerial": {
         "title": "Aerial Views",
-        "description": "Choose the named library published by the Aerial Views CSV feed.",
+        "description": "Choose the library and image filters published by the Aerial Views CSV feed.\n\n**Published images: {published_count} of {total_count}**",
         "data": {
-          "aerial_library": "Library"
+          "aerial_library": "Library",
+          "aerial_orientation": "Orientation",
+          "aerial_min_resolution": "Minimum resolution"
+        },
+        "data_description": {
+          "aerial_orientation": "Only publish images matching this orientation.",
+          "aerial_min_resolution": "Exclude images smaller than this resolution."
         }
       },
       "advanced": {
@@ -91,6 +107,20 @@
           "overflight_media_source": "Used when Overflight does not have a valid named library assigned.",
           "aerial_media_source": "Used when Aerial Views does not have a valid named library assigned."
         }
+      },
+      "general": {
+        "title": "General",
+        "description": "Configure settings shared by all Display Canvas feeds.",
+        "data": {
+          "base_url": "Base URL"
+        },
+        "data_description": {
+          "base_url": "Optional URL used when generating image links. Leave blank to let Home Assistant choose its local URL."
+        }
+      },
+      "feed_urls": {
+        "title": "Feed URLs",
+        "description": "Copy these URLs into your display apps.\n\n**Projectivy / Overflight**\n`{overflight_url}`\n\n**Aerial Views**\n`{aerial_url}`"
       }
     },
     "error": {
