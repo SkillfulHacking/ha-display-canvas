@@ -170,7 +170,7 @@ Treat feed URLs like credentials:
 
 - Do not publish them publicly.
 - Do not include them in screenshots or bug reports.
-- Regenerate the token if it is exposed.
+- If the token is exposed, remove and re-add the integration to generate a new token.
 
 The token allows access only to Display Canvas feeds and published media, not general Home Assistant API access.
 
