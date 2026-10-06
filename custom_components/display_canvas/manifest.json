@@ -10,5 +10,8 @@
   "requirements": [],
   "dependencies": [
     "media_source"
+  ],
+  "codeowners": [
+    "@SkillfulHacking"
   ]
 }
