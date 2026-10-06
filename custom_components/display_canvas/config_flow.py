@@ -19,16 +19,31 @@ from .const import (
     ATTR_MEDIA_SOURCE,
     CONF_ACCESS_TOKEN,
     CONF_AERIAL_LIBRARY,
+    CONF_AERIAL_MIN_RESOLUTION,
+    CONF_AERIAL_ORIENTATION,
     CONF_AERIAL_SOURCE,
+    CONF_BASE_URL,
     CONF_LIBRARIES,
     CONF_MEDIA_SOURCE,
     CONF_OVERFLIGHT_LIBRARY,
+    CONF_OVERFLIGHT_MIN_RESOLUTION,
+    CONF_OVERFLIGHT_ORIENTATION,
     CONF_OVERFLIGHT_SOURCE,
     DOMAIN,
+    ORIENTATION_ANY,
+    ORIENTATION_LANDSCAPE,
+    ORIENTATION_PORTRAIT,
+    RESOLUTION_1080P,
+    RESOLUTION_1440P,
+    RESOLUTION_4K,
+    RESOLUTION_720P,
+    RESOLUTION_ANY,
     NAME,
     TARGET_AERIAL,
     TARGET_OVERFLIGHT,
 )
+from .feed import feed_url
+from .http import async_feed_image_counts
 from .library import (
     camera_entity_id,
     default_media_source,
@@ -73,6 +88,21 @@ def _library_names(entry: ConfigEntry) -> list[str]:
         libraries(entry),
         key=str.casefold,
     )
+
+
+ORIENTATION_OPTIONS = {
+    ORIENTATION_ANY: "Any",
+    ORIENTATION_LANDSCAPE: "Landscape",
+    ORIENTATION_PORTRAIT: "Portrait",
+}
+
+RESOLUTION_OPTIONS = {
+    RESOLUTION_ANY: "Any",
+    RESOLUTION_720P: "720p",
+    RESOLUTION_1080P: "1080p",
+    RESOLUTION_1440P: "1440p",
+    RESOLUTION_4K: "4K",
+}
 
 
 class DisplayCanvasConfigFlow(
@@ -132,7 +162,10 @@ class DisplayCanvasOptionsFlow(OptionsFlowWithReload):
     ) -> config_entries.ConfigFlowResult:
         """Show the management menu."""
 
-        menu_options = ["libraries"]
+        menu_options = [
+            "general",
+            "libraries",
+        ]
 
         if libraries(self.config_entry):
             menu_options.extend(
@@ -142,11 +175,61 @@ class DisplayCanvasOptionsFlow(OptionsFlowWithReload):
                 ]
             )
 
-        menu_options.append("advanced")
+        menu_options.extend(
+            [
+                "feed_urls",
+                "advanced",
+            ]
+        )
 
         return self.async_show_menu(
             step_id="init",
             menu_options=menu_options,
+        )
+
+    async def async_step_general(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Configure general feed settings."""
+
+        if user_input is not None:
+            options = dict(self.config_entry.options)
+
+            base_url = user_input.get(
+                CONF_BASE_URL,
+                "",
+            ).strip().rstrip("/")
+
+            if base_url:
+                options[CONF_BASE_URL] = base_url
+            else:
+                options.pop(CONF_BASE_URL, None)
+
+            return self.async_create_entry(
+                title="",
+                data=options,
+            )
+
+        current = self.config_entry.options.get(
+            CONF_BASE_URL,
+            "",
+        )
+
+        return self.async_show_form(
+            step_id="general",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_BASE_URL,
+                        default=current,
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.URL,
+                        )
+                    ),
+                }
+            ),
         )
 
     async def async_step_libraries(
@@ -303,44 +386,126 @@ class DisplayCanvasOptionsFlow(OptionsFlowWithReload):
             data_schema=schema,
         )
 
-    async def async_step_overflight(
+    async def _async_step_feed(
         self,
-        user_input: dict[str, Any] | None = None,
+        step_id: str,
+        target: str,
+        library_key: str,
+        orientation_key: str,
+        resolution_key: str,
+        user_input: dict[str, Any] | None,
     ) -> config_entries.ConfigFlowResult:
-        """Configure the Overflight feed."""
+        """Configure a Display Canvas feed."""
 
         names = _library_names(self.config_entry)
 
+        if not names:
+            return await self.async_step_init()
+
         if user_input is not None:
             options = dict(self.config_entry.options)
-            options[CONF_OVERFLIGHT_LIBRARY] = user_input[
-                CONF_OVERFLIGHT_LIBRARY
-            ]
+
+            options[library_key] = user_input[library_key]
+            options[orientation_key] = user_input[orientation_key]
+            options[resolution_key] = user_input[resolution_key]
 
             return self.async_create_entry(
                 title="",
                 data=options,
             )
 
-        current = selected_library(
+        current_library = selected_library(
             self.config_entry,
-            TARGET_OVERFLIGHT,
+            target,
+        )
+
+        current_orientation = self.config_entry.options.get(
+            orientation_key,
+            ORIENTATION_ANY,
+        )
+
+        current_resolution = self.config_entry.options.get(
+            resolution_key,
+            RESOLUTION_ANY,
+        )
+
+        orientation_selector = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    selector.SelectOptionDict(
+                        value=value,
+                        label=label,
+                    )
+                    for value, label in ORIENTATION_OPTIONS.items()
+                ]
+            )
+        )
+
+        resolution_selector = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    selector.SelectOptionDict(
+                        value=value,
+                        label=label,
+                    )
+                    for value, label in RESOLUTION_OPTIONS.items()
+                ]
+            )
+        )
+
+        published_count, total_count = (
+            await async_feed_image_counts(
+                self.hass,
+                self.config_entry,
+                target,
+            )
         )
 
         return self.async_show_form(
-            step_id="overflight",
+            step_id=step_id,
+            description_placeholders={
+                "published_count": str(published_count),
+                "total_count": str(total_count),
+            },
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_OVERFLIGHT_LIBRARY,
+                        library_key,
                         default=(
-                            current
-                            if current in names
+                            current_library
+                            if current_library in names
                             else names[0]
                         ),
-                    ): vol.In(names),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=names,
+                        )
+                    ),
+                    vol.Required(
+                        orientation_key,
+                        default=current_orientation,
+                    ): orientation_selector,
+                    vol.Required(
+                        resolution_key,
+                        default=current_resolution,
+                    ): resolution_selector,
                 }
             ),
+        )
+
+    async def async_step_overflight(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Configure the Overflight feed."""
+
+        return await self._async_step_feed(
+            "overflight",
+            TARGET_OVERFLIGHT,
+            CONF_OVERFLIGHT_LIBRARY,
+            CONF_OVERFLIGHT_ORIENTATION,
+            CONF_OVERFLIGHT_MIN_RESOLUTION,
+            user_input,
         )
 
     async def async_step_aerial(
@@ -349,38 +514,42 @@ class DisplayCanvasOptionsFlow(OptionsFlowWithReload):
     ) -> config_entries.ConfigFlowResult:
         """Configure the Aerial Views feed."""
 
-        names = _library_names(self.config_entry)
-
-        if user_input is not None:
-            options = dict(self.config_entry.options)
-            options[CONF_AERIAL_LIBRARY] = user_input[
-                CONF_AERIAL_LIBRARY
-            ]
-
-            return self.async_create_entry(
-                title="",
-                data=options,
-            )
-
-        current = selected_library(
-            self.config_entry,
+        return await self._async_step_feed(
+            "aerial",
             TARGET_AERIAL,
+            CONF_AERIAL_LIBRARY,
+            CONF_AERIAL_ORIENTATION,
+            CONF_AERIAL_MIN_RESOLUTION,
+            user_input,
         )
 
+    async def async_step_feed_urls(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Show published feed URLs."""
+
+        if user_input is not None:
+            return self.async_create_entry(
+                title="",
+                data=dict(self.config_entry.options),
+            )
+
         return self.async_show_form(
-            step_id="aerial",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_AERIAL_LIBRARY,
-                        default=(
-                            current
-                            if current in names
-                            else names[0]
-                        ),
-                    ): vol.In(names),
-                }
-            ),
+            step_id="feed_urls",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "overflight_url": feed_url(
+                    self.hass,
+                    self.config_entry,
+                    "overflight.json",
+                ),
+                "aerial_url": feed_url(
+                    self.hass,
+                    self.config_entry,
+                    "aerial.csv",
+                ),
+            },
         )
 
     async def async_step_advanced(
