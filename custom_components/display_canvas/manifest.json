@@ -1,18 +1,18 @@
 {
   "domain": "display_canvas",
   "name": "Display Canvas",
-  "version": "0.9.0",
-  "config_flow": true,
-  "single_config_entry": true,
-  "documentation": "https://github.com/skillfulhacking/ha-display-canvas",
-  "issue_tracker": "https://github.com/skillfulhacking/ha-display-canvas/issues",
-  "integration_type": "service",
-  "requirements": [],
-  "dependencies": [
-    "media_source"
-  ],
   "codeowners": [
     "@SkillfulHacking"
   ],
-  "iot_class": "local_push"
+  "config_flow": true,
+  "dependencies": [
+    "media_source"
+  ],
+  "documentation": "https://github.com/skillfulhacking/ha-display-canvas",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/skillfulhacking/ha-display-canvas/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.9.0"
 }
